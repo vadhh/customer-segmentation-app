@@ -70,4 +70,4 @@ Aplikasi menampilkan strategi singkat dan lengkap tiap cluster di bawah hasil pr
 
 ---
 
-Made with ❤️ — (you can customize this README further)
+
