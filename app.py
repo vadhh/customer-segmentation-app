@@ -4,17 +4,13 @@ import joblib
 import plotly.express as px
 import numpy as np
 
-# --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Customer Segmentation App", layout="wide")
 
-# --- 2. LOAD ASSETS ---
 @st.cache_resource
 def load_assets():
     try:
-        # Pastikan file-file ini ada di folder yang sama
         model = joblib.load('kmeans_model.joblib')
         scaler = joblib.load('scaler.joblib')
-        # Load data sampel untuk visualisasi (opsional, jika ada)
         try:
             data = pd.read_csv('cluster_data.csv')
         except:
@@ -26,7 +22,6 @@ def load_assets():
 
 model, scaler, df_display = load_assets()
 
-# --- 3. SIDEBAR INPUT ---
 st.sidebar.header("📝 Input Data Pelanggan")
 st.sidebar.write("Masukkan perilaku belanja pelanggan:")
 
@@ -76,11 +71,6 @@ avg_trx_value = st.sidebar.number_input(
 # Tombol Prediksi
 if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
     if model is not None and scaler is not None:
-        # Siapkan data baru
-        # Urutan harus SAMA PERSIS dengan saat training: [TotalQuantity, AvgUnitPrice, AvgTransactionValue]
-        # Cek urutan di notebook Anda (Cell 6: TotalQuantity, AvgUnitPrice, AvgTransactionValue)
-        # Namun pastikan scaler Anda dilatih dengan urutan yang benar. 
-        # Di notebook Anda: df_non_rfm.drop('CustomerID', axis=1) -> ['TotalQuantity', 'AvgUnitPrice', 'AvgTransactionValue']
         
         new_data = np.array([[total_qty, avg_unit_price, avg_trx_value]])
         
@@ -90,36 +80,35 @@ if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
         # Prediksi Cluster
         cluster_pred = model.predict(new_data_scaled)[0]
         
-        # --- 4. MAIN CONTENT (Updated Personas) ---
         st.title("📊 Hasil Segmentasi Pelanggan")
         
         # Mapping Persona Sesuai Sprint 4
         # Cluster 0 -> Big Spender
-        # Cluster 3 -> Juragan Grosir (The Whales)
-        # Cluster 2 -> Premium User (Quality Seekers)
-        # Cluster 1 -> Frugal User (Budget Shoppers)
+        # Cluster 3 -> The Whales
+        # Cluster 2 -> Quality Seekers
+        # Cluster 1 -> Budget Shoppers
         
         personas = {
             0: {
-                "name": "Big Spender (VIP)", 
+                "name": "Big Spender", 
                 "color": "#2ca02c", # Hijau
                 "desc": "Pelanggan Sultan dengan nilai transaksi sangat tinggi. Sensitivitas harga rendah.", 
                 "action": "👑 **Strategi:** Layanan Prioritas, Cross-sell produk eksklusif, Concierge Service."
             },
             3: {
-                "name": "Juragan Grosir (The Whales)", 
+                "name": "The Whales", 
                 "color": "#1f77b4", # Biru
                 "desc": "Membeli dalam jumlah (Quantity) sangat masif namun harga unit rendah. Reseller/B2B.", 
                 "action": "📦 **Strategi:** Diskon Grosir (Bulk Discount), Paket Bundling Besar, Program Loyalitas B2B."
             },
             2: {
-                "name": "Premium User (Quality Seekers)", 
+                "name": "Quality Seekers", 
                 "color": "#ff7f0e", # Oranye
                 "desc": "Membeli barang dengan harga satuan tinggi (kualitas bagus), namun jumlahnya tidak banyak.", 
                 "action": "💎 **Strategi:** Product Bundling Premium, Tawarkan produk 'Limited Edition' atau New Arrivals."
             },
             1: {
-                "name": "Frugal User (Budget Shoppers)", 
+                "name": "Budget Shoppers", 
                 "color": "#d62728", # Merah
                 "desc": "Transaksi kecil, harga barang murah, dan quantity sedikit. Sangat sensitif harga.", 
                 "action": "🏷️ **Strategi:** Voucher Minimum Belanja (untuk menaikkan Basket Size), Flash Sale, Diskon Ongkir."
@@ -128,7 +117,6 @@ if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
         
         persona = personas.get(cluster_pred, {"name": f"Cluster {cluster_pred}", "desc": "Tipe pelanggan tidak dikenal.", "action": "Analisis lebih lanjut."})
 
-        # Tampilkan Hasil dengan Card Style
         st.markdown(f"""
         <div style="padding: 20px; border-radius: 10px; background-color: {persona.get('color', '#f0f2f6')}; color: white;">
             <h2 style="margin:0;">{persona['name']}</h2>
@@ -139,7 +127,6 @@ if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
         st.write("") # Spacer
         st.info(persona['action'])
 
-        # --- 5. STRATEGI LENGKAP (Expandable di UI) ---
         strategies = {
             0: '''
 **Ringkasan:** Pelanggan dengan nilai transaksi sangat tinggi. Sensitivitas harga rendah; fokus pada pengalaman dan eksklusivitas.
@@ -219,19 +206,15 @@ if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
         with st.expander(f"Strategi Lengkap — {persona['name']}"):
             st.markdown(strategy_text)
 
-        # --- 6. VISUALISASI ---
         st.markdown("---")
         st.subheader("📍 Posisi Pelanggan dalam Peta Sebaran")
         
         if df_display is not None:
-            # Pastikan kolom Persona ada di df_display untuk pewarnaan yang konsisten
-            # Kita mapping manual jika belum ada
             if 'Persona' not in df_display.columns:
                  # Mapping numeric cluster ke nama persona
                  persona_map = {k: v['name'] for k, v in personas.items()}
                  df_display['Persona'] = df_display['Cluster'].map(persona_map)
             
-            # 3D Scatter Plot
             fig = px.scatter_3d(
                 df_display,
                 x='TotalQuantity',
@@ -241,14 +224,13 @@ if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
                 opacity=0.3, # Buat titik lain agak transparan
                 title="Visualisasi 3D Cluster Pelanggan",
                 color_discrete_map={
-                    "Big Spender (VIP)": "#2ca02c",
-                    "Juragan Grosir (The Whales)": "#1f77b4",
-                    "Premium User (Quality Seekers)": "#ff7f0e",
-                    "Frugal User (Budget Shoppers)": "#d62728"
+                    "Big Spender": "#2ca02c",
+                    "The Whales": "#1f77b4",
+                    "Quality Seekers": "#ff7f0e",
+                    "Budget Shoppers": "#d62728"
                 }
             )
             
-            # Tambahkan titik pelanggan baru (Warna Hitam Mencolok dengan Simbol X)
             fig.add_scatter3d(
                 x=[total_qty],
                 y=[avg_trx_value],
@@ -258,7 +240,6 @@ if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
                 name='Pelanggan Baru (Input)'
             )
             
-            # Layout agar lebih enak dilihat
             fig.update_layout(
                 margin=dict(l=0, r=0, b=0, t=40),
                 scene=dict(
@@ -278,18 +259,18 @@ if st.sidebar.button("🔮 Prediksi Segmen", use_container_width=True):
 
 else:
     st.title("👋 Selamat Datang di Dashboard Segmentasi")
+    "**Tim Capstone Project	: A25-CS286**"
     st.markdown("""
     Aplikasi ini menggunakan Machine Learning (**K-Means Clustering**) untuk mengelompokkan pelanggan menjadi 4 Persona:
     
-    1.  **Big Spender (VIP)**: Nilai transaksi tinggi.
-    2.  **Juragan Grosir (The Whales)**: Volume pembelian massal.
-    3.  **Premium User**: Membeli barang-barang mahal/berkualitas.
-    4.  **Frugal User**: Pembeli hemat/budget.
+    1.  **Big Spender**     : Nilai transaksi tinggi.
+    2.  **The Whales**      : Volume pembelian massal.
+    3.  **Quaility Seekers**: Membeli barang-barang mahal/berkualitas.
+    4.  **Budget Shoppers** : Pembeli hemat/budget.
     
     👈 **Silakan masukkan data transaksi di panel sebelah kiri untuk memulai prediksi.**
     """)
     
-    # Tampilkan data sampel jika belum ada prediksi
     if df_display is not None:
         st.write("### Data Pelanggan Saat Ini (Sampel)")
         st.dataframe(df_display.head(10))
